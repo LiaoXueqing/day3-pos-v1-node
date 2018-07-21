@@ -1,121 +1,71 @@
-// require("datbase.js");
-// const printInventory = require('../main/datbase.js');
-module.exports = function printInventory(inputs) {
-    // console.log('***<没钱赚商店>购物清单***\n' +
-    // '名称：雪碧，数量：5瓶，单价：3.00(元)，小计：12.00(元)\n' +
-    // '名称：荔枝，数量：2斤，单价：15.00(元)，小计：30.00(元)\n' +
-    // '名称：方便面，数量：3袋，单价：4.50(元)，小计：9.00(元)\n' +
-    // '----------------------\n' +
-    // '挥泪赠送商品：\n' +
-    // '名称：雪碧，数量：1瓶\n' +
-    // '名称：方便面，数量：1袋\n' +
-    // '----------------------\n' +
-    // '总计：51.00(元)\n' +
-    // '节省：7.50(元)\n' +
-    // '**********************');
-    // return "hello world";
-    
-// function printInventory(inputs) {
-    // inputs = [
-    //     'ITEM000001'
-    // ];
-    let allItems = [
-        {
-            barcode: 'ITEM000000',
-            name: '可口可乐',
-            unit: '瓶',
-            price: 3.00
-        },
-        {
-            barcode: 'ITEM000001',
-            name: '雪碧',
-            unit: '瓶',
-            price: 3.00
-        },
-        {
-            barcode: 'ITEM000002',
-            name: '苹果',
-            unit: '斤',
-            price: 5.50
-        },
-        {
-            barcode: 'ITEM000003',
-            name: '荔枝',
-            unit: '斤',
-            price: 15.00
-        },
-        {
-            barcode: 'ITEM000004',
-            name: '电池',
-            unit: '个',
-            price: 2.00
-        },
-        {
-            barcode: 'ITEM000005',
-            name: '方便面',
-            unit: '袋',
-            price: 4.50
-        }
-    ];
+let datbase = require("./datbase.js");
 
-    let result = '***<没钱赚商店>购物清单***\n';
-    let allItemsTotal = 0.00;
+module.exports = function printInventory(inputs) {
+    let allItems = datbase.loadAllItems();
+    let map = new Map();
     for(let i=0;i<inputs.length;i++){
-        if(inputs[i].indexOf("-")==-1){
-            for(let j=0;j<allItems.length;j++){
-                if(inputs[i]==allItems[j].barcode){
-                    let item = {
-                        "barcode": allItems[j].barcode,
-                        "name": allItems[j].name,
-                        "unit": allItems[j].unit,
-                        "price": allItems[j].price,
-                        "count":1,
-                        "itemTotal":(+allItems[j].price)*(+allItems[j].count)
-                    }
-                    result+=`名称：${item.name}，数量：1${item.unit}，单价：${item.price}(元)，小计：${item.itemTotal}(元)\n`;
+        let barcode="";
+        let number=0;
+        if(inputs[i].indexOf("-")!=-1){
+            let item = inputs[i].split("-");
+            barcode = item[0];
+            number = item[1];
+        }else{
+            barcode = inputs[i];
+            number = 1;
+        }
+        if(map.get(barcode) != undefined){
+            number += map.get(barcode);
+            map.set(barcode,number);
+        }else{
+            map.set(barcode,number);
+        }
+    }
+    let dash=[];
+    let discountInfo = [];
+    let discountMoney = 0;
+    let allItemsTotal = 0;
+    let allPromotions = datbase.loadPromotions()[0].barcodes;
+    for (let [barcode, number] of map) {
+        for(let j=0;j<allItems.length;j++){
+            if(barcode == allItems[j].barcode){
+                let disnumber=0;
+                if(allPromotions.indexOf(barcode)!=-1){
+                    disnumber = parseInt(number/3);
+                    discountInfo.push({
+                        name:allItems[j].name,
+                        disnumber:disnumber,
+                        unit:allItems[j].unit
+                    });
                 }
+                let itemTotal = allItems[j].price*(number-disnumber);
+                discountMoney += allItems[j].price*disnumber;
+                dash.push({
+                    barcode:barcode,
+                    name:allItems[j].name,
+                    number:number,
+                    price:allItems[j].price,
+                    unit:allItems[j].unit,
+                    itemTotal:itemTotal
+                });
+                allItemsTotal += itemTotal;
             }
         }
     }
-    result+=`----------------------
-总计：${allItemsTotal}(元)
-节省：0.00(元)
-**********************`;
+    let result = '***<没钱赚商店>购物清单***\n';
+    for(let i=0;i<dash.length;i++){
+        result += `名称：${dash[i].name}，数量：${dash[i].number}${dash[i].unit}，` +
+            `单价：${dash[i].price.toFixed(2)}(元)，` +
+            `小计：${dash[i].itemTotal.toFixed(2)}(元)\n`;
+    }
+    result +='----------------------\n挥泪赠送商品：\n';
+    for(let i=0;i<discountInfo.length;i++){
+        result+=`名称：${discountInfo[i].name}，数量：${discountInfo[i].disnumber}${discountInfo[i].unit}\n`;
+    }
+    result +=`----------------------\n` +
+            `总计：${allItemsTotal.toFixed(2)}(元)\n` +
+            `节省：${discountMoney.toFixed(2)}(元)\n` +
+            `**********************`;
     console.log(result);
-    // console.log(allItems);
-    // let items = {
-
-    // }
-    //根据输入，构造items {
-    // name :
-    // count:
-    // price:
-    // unit:
-    // totalPrice:
-    // }
-    //合并同种类商品
-    // function mergeSameItem(){
-
-    // }
-
-    //计算每个条目的价钱
-    // function getSubTotal(){
-
-    // }
-
-    // //计算不打折价钱
-    // function getTotalMoney(){
-
-    // }
-    // //计算打折后价钱
-    // function getTotalMoneyAfterDiscount(){
-
-    // }
-    // // 计算优惠的价钱
-    // function getDiscount(){
-        
-    // }
-    return "hello world";
-    
+    return "hello world"; 
 };
-// printInventory();
